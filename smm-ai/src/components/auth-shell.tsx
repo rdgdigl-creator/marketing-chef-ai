@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/page-shell";
@@ -29,8 +30,19 @@ export default function AuthShell({ children, title, subtitle, footer }: AuthShe
 
       <main className="relative z-10 mx-auto max-w-lg px-6 pb-16">
         <div className="mb-8 text-center">
+          <div className="relative mx-auto mb-5 w-fit">
+            <div className="absolute inset-0 rounded-full bg-[#8B5CF6]/25 blur-2xl" />
+            <Image
+              src="/ai-director.png"
+              alt="AI-директор по маркетингу"
+              width={72}
+              height={72}
+              priority
+              className="relative h-[72px] w-[72px] rounded-full object-cover ring-1 ring-[#8B5CF6]/40"
+            />
+          </div>
           <p className="inline-flex items-center gap-2 rounded-full border border-[#8B5CF6]/20 bg-[#8B5CF6]/[0.06] px-3 py-1 text-xs font-medium uppercase tracking-[0.15em] text-[#8B5CF6]">
-            Creative Marketing Studio
+            AI-директор по маркетингу
           </p>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-white md:text-3xl">
             {title}

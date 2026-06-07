@@ -6,6 +6,7 @@ import {
   CreditCard,
   FolderKanban,
   LogOut,
+  Plug,
   Settings,
   User,
 } from "@/components/ui/icon";
@@ -17,6 +18,7 @@ const ICONS: Record<string, typeof User> = {
   "/profile": User,
   "/projects": FolderKanban,
   "/profile/settings": Settings,
+  "/profile/integrations": Plug,
   "/profile/tariff": CreditCard,
 };
 

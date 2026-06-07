@@ -1,11 +1,5 @@
-import type { Metadata } from "next";
-import MarketerDashboard from "./marketer-dashboard";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "AI Маркетолог — Marketing Chef AI",
-  description: "Чат с ИИ маркетологом, стратегии, акции, контент-идеи и анализ бизнеса",
-};
-
-export default function DashboardPage() {
-  return <MarketerDashboard />;
+export default function DashboardRedirectPage() {
+  redirect("/");
 }

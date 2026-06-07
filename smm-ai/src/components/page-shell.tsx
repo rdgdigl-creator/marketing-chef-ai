@@ -19,7 +19,7 @@ export function Logo({ size = 36, compact = false }: { size?: number; compact?: 
             Marketing Chef AI
           </span>
           <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#A1A1AA]">
-            AI-маркетолог для ресторанов
+            AI-директор по маркетингу
           </span>
         </div>
       )}
@@ -50,30 +50,37 @@ export default function PageShell({
       <div className="premium-orb premium-orb-2" />
       <div className="premium-orb premium-orb-3" />
 
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 lg:px-8">
+      <header className="relative z-[100] mx-auto flex max-w-6xl items-center justify-between px-5 py-5 lg:px-8">
         <Link href="/" className="transition-opacity hover:opacity-80">
           <span className="md:hidden"><Logo size={32} compact /></span>
           <span className="hidden md:inline-block"><Logo /></span>
         </Link>
 
-        <nav className="hidden items-center gap-0.5 text-sm lg:flex">
-          {DESKTOP_NAV.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`rounded-lg px-3 py-2 transition-all duration-200 ${
-                activeFeature === link.href
-                  ? "bg-[#8B5CF6]/10 text-[#8B5CF6]"
-                  : "text-[#A1A1AA] hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="ml-2 flex items-center gap-2 border-l border-white/[0.08] pl-4">
-            <AuthNav />
-          </div>
-        </nav>
+        <div className="flex items-center gap-2">
+          <nav className="hidden items-center gap-0.5 text-sm lg:flex">
+            {DESKTOP_NAV.map((link) => {
+              const Icon = link.icon;
+              const active =
+                activeFeature === link.href ||
+                (link.href !== "/" && (activeFeature ?? "").startsWith(link.href));
+              return (
+                <Link
+                  key={`${link.href}-${link.label}`}
+                  href={link.href}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all duration-200 ${
+                    active
+                      ? "bg-[#8B5CF6]/10 text-[#8B5CF6]"
+                      : "text-[#A1A1AA] hover:bg-white/[0.04] hover:text-white"
+                  }`}
+                >
+                  <Icon size={15} />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <AuthNav />
+        </div>
       </header>
 
       <main className={`relative z-10 mx-auto max-w-6xl px-5 lg:px-8 ${showBottomNav ? "pb-nav-safe md:pb-16" : "pb-16"}`}>

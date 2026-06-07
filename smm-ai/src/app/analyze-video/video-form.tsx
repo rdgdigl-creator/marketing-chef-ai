@@ -76,7 +76,7 @@ export default function VideoAnalysisForm() {
 
   return (
     <PageShell
-      activeFeature="/analyze-video"
+      activeFeature="/studio"
       badge="Анализ видео"
       title="Оценка видео для рекламы"
       subtitle="Загрузите видео — AI проанализирует первые секунды, монтаж, звук и подберёт аудиторию для Meta Ads."

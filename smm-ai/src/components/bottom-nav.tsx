@@ -2,38 +2,39 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clapperboard, FolderKanban, Home, Plus, User } from "@/components/ui/icon";
+import { BarChart3, Bot, FileText, Palette, User } from "@/components/ui/icon";
 
 const NAV_ITEMS: {
   href: string;
   label: string;
-  icon: typeof Home;
+  icon: typeof Bot;
   match: (p: string) => boolean;
   isCenter?: boolean;
 }[] = [
-  { href: "/", label: "Главная", icon: Home, match: (p) => p === "/" },
+  { href: "/", label: "Директор", icon: Bot, match: (p) => p === "/" },
   {
-    href: "/projects",
-    label: "Проекты",
-    icon: FolderKanban,
-    match: (p) => p.startsWith("/projects"),
+    href: "/analytics",
+    label: "Аналитика",
+    icon: BarChart3,
+    match: (p) => p.startsWith("/analytics"),
   },
   {
-    href: "/create",
-    label: "Создать",
-    icon: Plus,
+    href: "/studio",
+    label: "Студия",
+    icon: Palette,
     match: (p) =>
+      p.startsWith("/studio") ||
       p.startsWith("/create") ||
       p.startsWith("/upload") ||
-      p.startsWith("/analyze-pdf") ||
+      p.startsWith("/reels-generator") ||
       p.startsWith("/analyze-video"),
     isCenter: true,
   },
   {
-    href: "/reels-generator",
-    label: "Reels",
-    icon: Clapperboard,
-    match: (p) => p.startsWith("/reels-generator"),
+    href: "/analyze-pdf",
+    label: "Документы",
+    icon: FileText,
+    match: (p) => p.startsWith("/analyze-pdf"),
   },
   {
     href: "/profile",

@@ -177,7 +177,7 @@ export default function ReelsGeneratorForm() {
 
   return (
     <PageShell
-      activeFeature="/reels-generator"
+      activeFeature="/studio"
       badge="Reels Studio"
       title="Идеи Reels для вашего ресторана"
       subtitle="Загрузите фото — получите 20+ идей с хуками, сценами для съёмки, подписями и промптами для Kling AI."

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function UploadPage() {
   return (
     <PageShell
-      activeFeature="/upload"
+      activeFeature="/studio"
       badge="Фото → Реклама"
       title="Создайте рекламу из фото"
       subtitle="Загрузите фото блюда, ресторана или продукта — AI проанализирует изображение и подготовит рекламные концепции, тексты, баннеры и идеи для соцсетей."
