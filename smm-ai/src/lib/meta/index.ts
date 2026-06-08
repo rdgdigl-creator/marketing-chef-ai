@@ -2,7 +2,9 @@ export { getMetaConnectionStatus } from "./connection-status";
 export { canUseMetaOAuth, getMetaDataSource, isMetaMockMode } from "./data-source";
 export { isMetaConfigured } from "./config";
 export {
+  autoSelectFirstAdAccountIfNeeded,
   listMetaAdAccounts,
+  refreshMetaAdAccountsFromGraph,
   selectMetaAdAccount,
   syncMetaAdAccountsFromGraph,
 } from "./ad-accounts";

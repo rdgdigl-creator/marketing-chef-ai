@@ -35,7 +35,7 @@ export async function syncMetaAdAccountsFromGraph(
   accessToken: string,
 ): Promise<MetaAdAccount[]> {
   const client = new MetaGraphClient(accessToken);
-  const accounts = await client.getAdAccounts();
+  const { accounts } = await client.getAdAccountsWithRaw();
   const supabase = await createSupabaseServerClient();
 
   if (accounts.length === 0) {
@@ -115,4 +115,70 @@ export async function selectMetaAdAccount(
   }
 
   return { name: account.name };
+}
+
+/** Привязать первый доступный кабинет, если selected_ad_account_id ещё не задан. */
+export async function autoSelectFirstAdAccountIfNeeded(
+  userId: string,
+  accounts: MetaAdAccount[],
+  currentSelectedId: string | null,
+): Promise<{ selectedId: string | null; selectedName: string | null; autoSelected: boolean }> {
+  if (currentSelectedId || accounts.length === 0) {
+    return {
+      selectedId: currentSelectedId,
+      selectedName: null,
+      autoSelected: false,
+    };
+  }
+
+  const first = accounts[0];
+  const result = await selectMetaAdAccount(userId, first.id);
+  console.info(
+    "[meta] auto-selected ad account:",
+    JSON.stringify({ id: first.id, name: result.name }),
+  );
+
+  return {
+    selectedId: first.id,
+    selectedName: result.name,
+    autoSelected: true,
+  };
+}
+
+/** Перечитать кабинеты из Graph API, сохранить в БД и при необходимости выбрать первый. */
+export async function refreshMetaAdAccountsFromGraph(userId: string): Promise<{
+  accounts: MetaAdAccount[];
+  selectedId: string | null;
+  selectedName: string | null;
+  autoSelected: boolean;
+}> {
+  const supabase = await createSupabaseServerClient();
+  const { data: connection } = await supabase
+    .from("meta_connections")
+    .select("id, access_token, selected_ad_account_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!connection?.access_token) {
+    throw new Error("Meta не подключён");
+  }
+
+  const accounts = await syncMetaAdAccountsFromGraph(
+    userId,
+    connection.id,
+    connection.access_token,
+  );
+
+  const selection = await autoSelectFirstAdAccountIfNeeded(
+    userId,
+    accounts,
+    connection.selected_ad_account_id,
+  );
+
+  return {
+    accounts,
+    selectedId: selection.selectedId,
+    selectedName: selection.selectedName,
+    autoSelected: selection.autoSelected,
+  };
 }

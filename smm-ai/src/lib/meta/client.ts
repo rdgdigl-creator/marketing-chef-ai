@@ -77,12 +77,26 @@ export class MetaGraphClient {
   }
 
   async getAdAccounts(): Promise<MetaAdAccount[]> {
+    const { accounts } = await this.getAdAccountsWithRaw();
+    return accounts;
+  }
+
+  /** GET /me/adaccounts — с сырым ответом Graph API для диагностики. */
+  async getAdAccountsWithRaw(): Promise<{
+    accounts: MetaAdAccount[];
+    raw: GraphList<GraphAdAccount>;
+  }> {
     const payload = await this.get<GraphList<GraphAdAccount>>("/me/adaccounts", {
       fields: "id,name,currency,account_status,timezone_name",
       limit: "100",
     });
 
-    return (payload.data ?? []).map((account) => ({
+    console.info(
+      "[meta] GET /me/adaccounts response:",
+      JSON.stringify(payload, null, 2),
+    );
+
+    const accounts = (payload.data ?? []).map((account) => ({
       id: account.id,
       name: account.name?.trim() || account.id,
       currency: account.currency?.trim() || "RUB",
@@ -90,6 +104,8 @@ export class MetaGraphClient {
         account.account_status !== undefined ? String(account.account_status) : null,
       timezone: account.timezone_name ?? null,
     }));
+
+    return { accounts, raw: payload };
   }
 
   private async getAllPages<T>(path: string, query: Record<string, string>): Promise<T[]> {

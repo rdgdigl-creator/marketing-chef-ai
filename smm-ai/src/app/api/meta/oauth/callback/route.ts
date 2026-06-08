@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { META_OAUTH_SCOPES } from "@/lib/meta/config";
 import { MetaGraphClient } from "@/lib/meta/client";
-import { syncMetaAdAccountsFromGraph } from "@/lib/meta/ad-accounts";
+import {
+  autoSelectFirstAdAccountIfNeeded,
+  syncMetaAdAccountsFromGraph,
+} from "@/lib/meta/ad-accounts";
 import {
   exchangeCodeForToken,
   exchangeForLongLivedToken,
@@ -79,18 +82,11 @@ export async function GET(request: Request) {
       longToken.accessToken,
     );
 
-    if (accounts.length === 1 && !connection.selected_ad_account_id) {
-      await supabase
-        .from("meta_connections")
-        .update({ selected_ad_account_id: accounts[0].id })
-        .eq("id", connection.id);
-
-      await supabase
-        .from("meta_ad_accounts")
-        .update({ is_selected: true })
-        .eq("connection_id", connection.id)
-        .eq("meta_account_id", accounts[0].id);
-    }
+    await autoSelectFirstAdAccountIfNeeded(
+      user.id,
+      accounts,
+      connection.selected_ad_account_id,
+    );
 
     integrationsUrl.searchParams.set("meta", "connected");
     const response = NextResponse.redirect(integrationsUrl);

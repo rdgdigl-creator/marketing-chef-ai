@@ -101,11 +101,13 @@ function SyncState({
       <span className="mb-4 inline-flex rounded-2xl border border-[#1877F2]/15 bg-[#1877F2]/[0.06] p-4 text-[#60A5FA]">
         <RefreshCw size={28} className={busy ? "animate-spin" : undefined} />
       </span>
-      <h2 className="text-lg font-semibold text-white">Запустите демо-аудит</h2>
+      <h2 className="text-lg font-semibold text-white">
+        {isDemo ? "Запустите демо-аудит" : "Запустите первый аудит"}
+      </h2>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
         {isDemo
           ? "Демо-кабинет подключён. Загрузите mock-данные — таргетолог проведёт аудит с ошибками и рекомендациями."
-          : "Синхронизируйте кампании и метрики — таргетолог проведёт первый аудит."}
+          : "Синхронизируйте кампании и метрики из Meta Ads — таргетолог проведёт первый аудит."}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {isDemo && (
