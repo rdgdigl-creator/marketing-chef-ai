@@ -32,6 +32,16 @@ export type MetaSyncResult = {
   status: "success" | "error";
   recordsSynced: number;
   period?: { campaigns: number; adSets: number; ads: number; insights: number };
+  debug?: {
+    adAccountId: string;
+    adAccountsFromMe: number;
+    campaigns: number;
+    adSets: number;
+    ads: number;
+    insights: number;
+    accountInsightsLast7d: boolean;
+    dbRecordsSaved: number;
+  };
   error?: string;
 };
 
@@ -48,7 +58,7 @@ async function upsertInsight(
   },
 ) {
   const { raw } = params;
-  await supabase.from("meta_insights_snapshots").upsert(
+  const { error } = await supabase.from("meta_insights_snapshots").upsert(
     {
       connection_id: params.connectionId,
       user_id: params.userId,
@@ -72,6 +82,14 @@ async function upsertInsight(
     },
     { onConflict: "connection_id,entity_type,entity_id,period" },
   );
+
+  if (error) {
+    throw new Error(`meta_insights_snapshots: ${error.message}`);
+  }
+}
+
+function emptyAccountInsights() {
+  return normalizeInsights({});
 }
 
 export type MetaSyncResponse = MetaSyncResult & { demo?: boolean; cookie?: string };
@@ -133,14 +151,31 @@ export async function syncMetaAdAccount(userId: string): Promise<MetaSyncRespons
     const client = new MetaGraphClient(row.access_token);
     const now = new Date().toISOString();
 
+    const { accounts: meAdAccounts, raw: meAdAccountsRaw } =
+      await client.getAdAccountsWithRaw();
+    console.info(
+      "[meta sync] GET /me/adaccounts:",
+      JSON.stringify(meAdAccountsRaw, null, 2),
+    );
+
     const [campaigns, adSets, ads] = await Promise.all([
       client.getCampaigns(adAccountId),
       client.getAdSets(adAccountId),
       client.getAds(adAccountId),
     ]);
 
+    console.info(
+      "[meta sync] entities:",
+      JSON.stringify({
+        adAccountId,
+        campaigns: campaigns.length,
+        adSets: adSets.length,
+        ads: ads.length,
+      }),
+    );
+
     if (campaigns.length > 0) {
-      await supabase.from("meta_campaigns").upsert(
+      const { error: campaignsError } = await supabase.from("meta_campaigns").upsert(
         campaigns.map((c) => ({
           connection_id: row.id,
           user_id: userId,
@@ -155,11 +190,14 @@ export async function syncMetaAdAccount(userId: string): Promise<MetaSyncRespons
         })),
         { onConflict: "connection_id,meta_campaign_id" },
       );
+      if (campaignsError) {
+        throw new Error(`meta_campaigns: ${campaignsError.message}`);
+      }
       recordsSynced += campaigns.length;
     }
 
     if (adSets.length > 0) {
-      await supabase.from("meta_ad_sets").upsert(
+      const { error: adSetsError } = await supabase.from("meta_ad_sets").upsert(
         adSets.map((s) => {
           const targeting = (s.targeting ?? {}) as Record<string, unknown>;
           return {
@@ -178,11 +216,14 @@ export async function syncMetaAdAccount(userId: string): Promise<MetaSyncRespons
         }),
         { onConflict: "connection_id,meta_ad_set_id" },
       );
+      if (adSetsError) {
+        throw new Error(`meta_ad_sets: ${adSetsError.message}`);
+      }
       recordsSynced += adSets.length;
     }
 
     if (ads.length > 0) {
-      await supabase.from("meta_ads").upsert(
+      const { error: adsError } = await supabase.from("meta_ads").upsert(
         ads.map((a) => ({
           connection_id: row.id,
           user_id: userId,
@@ -196,25 +237,44 @@ export async function syncMetaAdAccount(userId: string): Promise<MetaSyncRespons
         })),
         { onConflict: "connection_id,meta_ad_id" },
       );
+      if (adsError) {
+        throw new Error(`meta_ads: ${adsError.message}`);
+      }
       recordsSynced += ads.length;
     }
 
     let insightsCount = 0;
+    let accountInsightsLast7d = false;
 
     for (const period of INSIGHT_PERIODS) {
-      const accountRaw = await client.getInsights(adAccountId, period);
-      if (accountRaw) {
-        await upsertInsight(supabase, {
-          connectionId: row.id,
-          userId,
-          adAccountId,
-          entityType: "account",
-          entityId: adAccountId,
-          period,
-          raw: normalizeInsights(accountRaw),
-        });
-        insightsCount += 1;
-        recordsSynced += 1;
+      let accountRaw: Awaited<ReturnType<MetaGraphClient["getInsights"]>> = null;
+      try {
+        accountRaw = await client.getInsights(adAccountId, period);
+      } catch (insightError) {
+        console.warn(
+          `[meta sync] account insights ${period} error:`,
+          insightError instanceof Error ? insightError.message : insightError,
+        );
+      }
+
+      console.info(
+        `[meta sync] account insights ${period}:`,
+        accountRaw ? "ok" : "empty",
+      );
+
+      await upsertInsight(supabase, {
+        connectionId: row.id,
+        userId,
+        adAccountId,
+        entityType: "account",
+        entityId: adAccountId,
+        period,
+        raw: accountRaw ? normalizeInsights(accountRaw) : emptyAccountInsights(),
+      });
+      insightsCount += 1;
+      recordsSynced += 1;
+      if (period === "last_7d") {
+        accountInsightsLast7d = true;
       }
       await sleep(SYNC_DELAY_MS);
 
@@ -308,6 +368,16 @@ export async function syncMetaAdAccount(userId: string): Promise<MetaSyncRespons
         adSets: adSets.length,
         ads: ads.length,
         insights: insightsCount,
+      },
+      debug: {
+        adAccountId,
+        adAccountsFromMe: meAdAccounts.length,
+        campaigns: campaigns.length,
+        adSets: adSets.length,
+        ads: ads.length,
+        insights: insightsCount,
+        accountInsightsLast7d,
+        dbRecordsSaved: recordsSynced,
       },
     };
   } catch (error) {

@@ -15,7 +15,95 @@ import {
   TrendingUp,
   Zap,
 } from "@/components/ui/icon";
-import type { MediaBuyerDashboardData } from "@/lib/media-buyer/types";
+import type {
+  MediaBuyerDashboardData,
+  MediaBuyerDebugInfo,
+} from "@/lib/media-buyer/types";
+import type { MetaSyncResult } from "@/lib/meta/sync-service";
+
+function formatDebugDate(value: string | null): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function MediaBuyerDebugBlock({
+  debug,
+  lastSyncResponse,
+  clientSyncError,
+}: {
+  debug: MediaBuyerDebugInfo;
+  lastSyncResponse: MetaSyncResult | null;
+  clientSyncError: string | null;
+}) {
+  const syncError = clientSyncError ?? debug.syncError;
+
+  return (
+    <details
+      open
+      className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-sm"
+    >
+      <summary className="cursor-pointer font-medium text-amber-300">
+        Debug · Meta sync (временно)
+      </summary>
+      <dl className="mt-3 space-y-2">
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">selectedAdAccountId</dt>
+          <dd className="break-all text-right font-mono text-xs text-white">
+            {debug.selectedAdAccountId ?? "—"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">campaignsCount</dt>
+          <dd className="text-white">{debug.campaignsCount}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">adSetsCount</dt>
+          <dd className="text-white">{debug.adSetsCount}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">adsCount</dt>
+          <dd className="text-white">{debug.adsCount}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">insightsCount (DB)</dt>
+          <dd className="text-white">{debug.insightsCount}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">accountInsightsLast7d</dt>
+          <dd className="text-white">{debug.accountInsightsLast7d ? "true" : "false"}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">lastSyncAt</dt>
+          <dd className="text-white">{formatDebugDate(debug.lastSyncAt)}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">hasData</dt>
+          <dd className="text-white">{debug.hasData ? "true" : "false"}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-[#A1A1AA]">syncError</dt>
+          <dd className="break-all text-right text-red-300">{syncError ?? "—"}</dd>
+        </div>
+        {lastSyncResponse && (
+          <div className="mt-2 border-t border-amber-500/20 pt-2">
+            <p className="text-xs font-medium text-amber-200">POST /api/meta/sync</p>
+            <pre className="mt-2 overflow-x-auto rounded-lg bg-black/40 p-2 text-left font-mono text-[10px] leading-relaxed text-[#E4E4E7]">
+              {JSON.stringify(lastSyncResponse, null, 2)}
+            </pre>
+          </div>
+        )}
+      </dl>
+    </details>
+  );
+}
 
 function formatMoney(value: number, currency: string): string {
   const symbol = currency === "RUB" || currency === "RUR" ? "₽" : currency;
@@ -140,6 +228,15 @@ export function MediaBuyerDashboard({ data }: { data: MediaBuyerDashboardData })
   const [syncing, setSyncing] = useState(false);
   const [quickstarting, setQuickstarting] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncResponse, setLastSyncResponse] = useState<MetaSyncResult | null>(null);
+
+  const debugBlock = (
+    <MediaBuyerDebugBlock
+      debug={data.debug}
+      lastSyncResponse={lastSyncResponse}
+      clientSyncError={syncError}
+    />
+  );
 
   const handleQuickstart = async () => {
     setQuickstarting(true);
@@ -164,7 +261,8 @@ export function MediaBuyerDashboard({ data }: { data: MediaBuyerDashboardData })
     setSyncError(null);
     try {
       const res = await fetch("/api/meta/sync", { method: "POST" });
-      const body = (await res.json()) as { error?: string };
+      const body = (await res.json()) as MetaSyncResult & { error?: string };
+      setLastSyncResponse(body);
       if (!res.ok) {
         setSyncError(body.error ?? "Не удалось синхронизировать");
         return;
@@ -178,12 +276,17 @@ export function MediaBuyerDashboard({ data }: { data: MediaBuyerDashboardData })
   };
 
   if (!data.hasMeta || !data.hasAccount) {
-    return <ConnectState isDemo={data.isDemo} />;
+    return (
+      <div className="space-y-4">
+        <ConnectState isDemo={data.isDemo} />
+        {debugBlock}
+      </div>
+    );
   }
 
   if (data.needsSync) {
     return (
-      <>
+      <div className="space-y-4">
         <SyncState
           onSync={handleSync}
           syncing={syncing}
@@ -191,10 +294,8 @@ export function MediaBuyerDashboard({ data }: { data: MediaBuyerDashboardData })
           onQuickstart={handleQuickstart}
           quickstarting={quickstarting}
         />
-        {syncError && (
-          <p className="mt-4 text-center text-sm text-red-400">{syncError}</p>
-        )}
-      </>
+        {debugBlock}
+      </div>
     );
   }
 
@@ -203,6 +304,7 @@ export function MediaBuyerDashboard({ data }: { data: MediaBuyerDashboardData })
 
   return (
     <div className="space-y-6">
+      {debugBlock}
       {data.isDemo && <DemoModeBanner title="Media Buyer · демо-аудит" />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">

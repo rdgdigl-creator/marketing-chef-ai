@@ -56,10 +56,20 @@ function insightMap(rows: InsightRow[]): Map<string, { last_7d?: InsightRow; las
   return map;
 }
 
+export type MediaBuyerLoadDebug = {
+  selectedAdAccountId: string | null;
+  campaignsCount: number;
+  adSetsCount: number;
+  adsCount: number;
+  insightsCount: number;
+  accountInsightsLast7d: boolean;
+};
+
 export async function loadMediaBuyerContext(): Promise<{
   context: MediaBuyerRuleContext;
   lastSyncAt: string | null;
   restaurantName: string | null;
+  debug: MediaBuyerLoadDebug;
 }> {
   const user = await getAuthUser();
   if (!user) {
@@ -87,8 +97,17 @@ export async function loadMediaBuyerContext(): Promise<{
     ads: [],
   };
 
+  const emptyDebug: MediaBuyerLoadDebug = {
+    selectedAdAccountId: metaStatus.selectedAdAccountId,
+    campaignsCount: 0,
+    adSetsCount: 0,
+    adsCount: 0,
+    insightsCount: 0,
+    accountInsightsLast7d: false,
+  };
+
   if (!metaStatus.connected || !metaStatus.selectedAdAccountId) {
-    return { context: emptyContext, lastSyncAt: null, restaurantName: null };
+    return { context: emptyContext, lastSyncAt: null, restaurantName: null, debug: emptyDebug };
   }
 
   if (isMetaMockMode() && metaStatus.dataSource === "mock") {
@@ -99,11 +118,20 @@ export async function loadMediaBuyerContext(): Promise<{
       .eq("user_id", user.id)
       .maybeSingle();
 
+    const mockCtx = buildMockMediaBuyerContext(session);
     return {
-      context: buildMockMediaBuyerContext(session),
+      context: mockCtx,
       lastSyncAt: session.lastSyncAt,
       restaurantName:
         (profile as { restaurant_name?: string | null } | null)?.restaurant_name ?? null,
+      debug: {
+        selectedAdAccountId: metaStatus.selectedAdAccountId,
+        campaignsCount: mockCtx.campaigns.length,
+        adSetsCount: mockCtx.adSets.length,
+        adsCount: mockCtx.ads.length,
+        insightsCount: mockCtx.hasData ? 1 : 0,
+        accountInsightsLast7d: mockCtx.hasData,
+      },
     };
   }
 
@@ -114,7 +142,7 @@ export async function loadMediaBuyerContext(): Promise<{
     .maybeSingle();
 
   if (!connection) {
-    return { context: emptyContext, lastSyncAt: null, restaurantName: null };
+    return { context: emptyContext, lastSyncAt: null, restaurantName: null, debug: emptyDebug };
   }
 
   const adAccountId = metaStatus.selectedAdAccountId;
@@ -159,7 +187,10 @@ export async function loadMediaBuyerContext(): Promise<{
     ]);
 
   const insightRows = (insightsRes.data as InsightRow[] | null) ?? [];
-  const hasData = insightRows.some((r) => r.entity_type === "account" && r.period === "last_7d");
+  const accountInsightsLast7d = insightRows.some(
+    (r) => r.entity_type === "account" && r.period === "last_7d",
+  );
+  const hasData = accountInsightsLast7d;
   const map = insightMap(insightRows);
 
   const accountInsights = map.get(`account:${adAccountId}`);
@@ -253,5 +284,13 @@ export async function loadMediaBuyerContext(): Promise<{
     lastSyncAt: (connection as { last_sync_at?: string | null }).last_sync_at ?? null,
     restaurantName:
       (profileRes.data as { restaurant_name?: string | null } | null)?.restaurant_name ?? null,
+    debug: {
+      selectedAdAccountId: adAccountId,
+      campaignsCount: campaignRows.length,
+      adSetsCount: adSetRows.length,
+      adsCount: adRows.length,
+      insightsCount: insightRows.length,
+      accountInsightsLast7d,
+    },
   };
 }

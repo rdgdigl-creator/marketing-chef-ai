@@ -1,4 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
+import { getMetaConnectionStatus } from "@/lib/meta";
 import { getMetaDataSource, isMetaMockMode } from "@/lib/meta/data-source";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buildActionPlan, buildConclusion } from "./action-plan";
@@ -164,7 +165,11 @@ export async function getMediaBuyerDashboard(): Promise<MediaBuyerDashboardData>
   const user = await getAuthUser();
   if (!user) throw new Error("Не авторизован");
 
-  const { context, lastSyncAt } = await loadMediaBuyerContext();
+  const [metaStatus, loaded] = await Promise.all([
+    getMetaConnectionStatus(user.id),
+    loadMediaBuyerContext(),
+  ]);
+  const { context, lastSyncAt, debug: loadDebug } = loaded;
   const matches = mediaBuyerRuleEngine.evaluateAll(context);
 
   const verdictMatch =
@@ -235,5 +240,16 @@ export async function getMediaBuyerDashboard(): Promise<MediaBuyerDashboardData>
     directorPrompt,
     lastSyncAt,
     updatedAt: new Date().toISOString(),
+    debug: {
+      selectedAdAccountId: loadDebug.selectedAdAccountId,
+      campaignsCount: loadDebug.campaignsCount,
+      adSetsCount: loadDebug.adSetsCount,
+      adsCount: loadDebug.adsCount,
+      insightsCount: loadDebug.insightsCount,
+      accountInsightsLast7d: loadDebug.accountInsightsLast7d,
+      lastSyncAt,
+      hasData: context.hasData,
+      syncError: metaStatus.errorMessage,
+    },
   };
 }

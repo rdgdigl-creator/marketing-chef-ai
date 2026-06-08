@@ -132,11 +132,25 @@ export type SpecialistConclusion = {
   gradeLabel: string;
 };
 
+/** Временная диагностика sync / Meta API. */
+export type MediaBuyerDebugInfo = {
+  selectedAdAccountId: string | null;
+  campaignsCount: number;
+  adSetsCount: number;
+  adsCount: number;
+  insightsCount: number;
+  accountInsightsLast7d: boolean;
+  lastSyncAt: string | null;
+  hasData: boolean;
+  syncError: string | null;
+};
+
 export type MediaBuyerDashboardData = {
   hasMeta: boolean;
   hasAccount: boolean;
   hasData: boolean;
   needsSync: boolean;
+  debug: MediaBuyerDebugInfo;
   /** Демо-режим без OAuth (mock provider). */
   isDemo: boolean;
   dataSource: "oauth" | "mock";
