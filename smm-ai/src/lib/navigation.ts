@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import {
   BarChart3,
   Bot,
+  TrendingUp,
   Clapperboard,
   FileText,
   ImagePlus,
@@ -11,6 +12,7 @@ import {
   Plug,
   Settings,
   Sparkles,
+  Target,
   UtensilsCrossed,
   Video,
   Wand2,
@@ -30,6 +32,9 @@ export const PRIMARY_NAV: {
   icon: IconType;
 }[] = [
   { href: "/", label: "AI Директор", shortLabel: "Директор", icon: Bot },
+  { href: "/ai-hq", label: "Штаб ИИ", shortLabel: "Штаб", icon: Layers },
+  { href: "/media-buyer", label: "Media Buyer", shortLabel: "Таргет", icon: Target },
+  { href: "/revenue", label: "Рост выручки", shortLabel: "Рост", icon: TrendingUp },
   { href: "/analytics", label: "Аналитика бизнеса", shortLabel: "Аналитика", icon: BarChart3 },
   { href: "/studio", label: "Creative Studio", shortLabel: "Студия", icon: Palette },
   { href: "/analyze-pdf", label: "Документы", shortLabel: "Документы", icon: FileText },

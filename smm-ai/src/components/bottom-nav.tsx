@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bot, FileText, Palette, User } from "@/components/ui/icon";
+import { Bot, FileText, Layers, Palette, User } from "@/components/ui/icon";
 
 const NAV_ITEMS: {
   href: string;
@@ -13,10 +13,10 @@ const NAV_ITEMS: {
 }[] = [
   { href: "/", label: "Директор", icon: Bot, match: (p) => p === "/" },
   {
-    href: "/analytics",
-    label: "Аналитика",
-    icon: BarChart3,
-    match: (p) => p.startsWith("/analytics"),
+    href: "/ai-hq",
+    label: "Штаб",
+    icon: Layers,
+    match: (p) => p.startsWith("/ai-hq") || p.startsWith("/media-buyer"),
   },
   {
     href: "/studio",

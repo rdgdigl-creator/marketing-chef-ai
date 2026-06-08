@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import PageShell from "@/components/page-shell";
 import { DirectorChat } from "@/components/director/director-chat";
 import { RefreshCw } from "@/components/ui/icon";
@@ -80,7 +81,9 @@ export function AuthenticatedHome({ displayName, iiko }: AuthenticatedHomeProps)
         </div>
       </section>
 
-      <DirectorChat />
+      <Suspense fallback={null}>
+        <DirectorChat />
+      </Suspense>
     </PageShell>
   );
 }

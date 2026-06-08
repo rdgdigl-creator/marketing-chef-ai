@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight } from "@/components/ui/icon";
 import { DIRECTOR_PROMPTS } from "@/lib/navigation";
@@ -33,13 +34,23 @@ function DirectorAvatar({ size = 32 }: { size?: number }) {
 }
 
 export function DirectorChat() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const promptAppliedRef = useRef(false);
 
   const isEmpty = messages.length === 0;
+
+  useEffect(() => {
+    const prompt = searchParams.get("prompt")?.trim();
+    if (!prompt || promptAppliedRef.current) return;
+    promptAppliedRef.current = true;
+    setInput(prompt);
+    textareaRef.current?.focus();
+  }, [searchParams]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

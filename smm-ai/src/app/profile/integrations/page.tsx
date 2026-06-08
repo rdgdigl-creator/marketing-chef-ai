@@ -4,7 +4,9 @@ import PageShell from "@/components/page-shell";
 import { ProfileSidebar } from "@/components/profile-sidebar";
 import { getAuthContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getMetaConnectionStatus, listMetaAdAccounts } from "@/lib/meta";
 import { IikoIntegrationCard } from "./iiko-integration-card";
+import { MetaIntegrationCard } from "./meta-integration-card";
 
 export const dynamic = "force-dynamic";
 
@@ -48,13 +50,23 @@ async function getIikoConnection(
   return (data as IikoConnectionRow | null) ?? null;
 }
 
-export default async function ProfileIntegrationsPage() {
+type IntegrationsPageProps = {
+  searchParams: Promise<{ meta?: string; meta_error?: string }>;
+};
+
+export default async function ProfileIntegrationsPage({
+  searchParams,
+}: IntegrationsPageProps) {
   const { user } = await getAuthContext();
   if (!user) redirect("/login?redirect=/profile/integrations");
 
-  const [projectCount, connection] = await Promise.all([
+  const params = await searchParams;
+
+  const [projectCount, connection, metaStatus, metaAccounts] = await Promise.all([
     getProjectCount(user.id),
     getIikoConnection(user.id),
+    getMetaConnectionStatus(user.id),
+    listMetaAdAccounts(user.id),
   ]);
 
   // В браузер уходит только имя интеграции (API Login), без секрета (API Key).
@@ -68,14 +80,31 @@ export default async function ProfileIntegrationsPage() {
     >
       <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
         <ProfileSidebar projectCount={projectCount} />
-        <IikoIntegrationCard
-          connected={Boolean(connection)}
-          apiLogin={apiLogin}
-          organizationName={connection?.organization_name || null}
-          syncStatus={connection?.sync_status ?? null}
-          lastSyncAt={connection?.last_sync_at ?? null}
-          errorMessage={connection?.error_message ?? null}
-        />
+        <div className="space-y-6">
+          <IikoIntegrationCard
+            connected={Boolean(connection)}
+            apiLogin={apiLogin}
+            organizationName={connection?.organization_name || null}
+            syncStatus={connection?.sync_status ?? null}
+            lastSyncAt={connection?.last_sync_at ?? null}
+            errorMessage={connection?.error_message ?? null}
+          />
+          <MetaIntegrationCard
+            mockMode={metaStatus.dataSource === "mock" || !metaStatus.oauthAvailable}
+            oauthAvailable={metaStatus.oauthAvailable}
+            dataSource={metaStatus.dataSource}
+            connected={metaStatus.connected}
+            metaUserName={metaStatus.metaUserName}
+            syncStatus={metaStatus.syncStatus}
+            lastSyncAt={metaStatus.lastSyncAt}
+            errorMessage={metaStatus.errorMessage}
+            selectedAdAccountId={metaStatus.selectedAdAccountId}
+            selectedAdAccountName={metaStatus.selectedAdAccountName}
+            adAccounts={metaAccounts}
+            oauthSuccess={params.meta === "connected"}
+            oauthError={params.meta_error ?? null}
+          />
+        </div>
       </div>
     </PageShell>
   );
